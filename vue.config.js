@@ -24,6 +24,7 @@ module.exports = {
    * In most cases please use '/' !!!
    * Detail: https://cli.vuejs.org/config/#publicpath
    */
+
   publicPath: '/',
   outputDir: 'dist',
   assetsDir: 'static',
@@ -36,7 +37,14 @@ module.exports = {
       warnings: false,
       errors: true
     },
-    before: require('./mock/mock-server.js')
+    // 跨域代理
+    proxy: {
+      '/api': {
+        target: 'https://heimahr.itheima.net'
+      }
+    }
+    // 基础模块做的模拟数据，会影响到请求
+    // before: require('./mock/mock-server.js')
   },
   configureWebpack: {
     // provide the app's title in webpack's name field, so that

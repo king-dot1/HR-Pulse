@@ -1,24 +1,10 @@
-import request from '@/utils/request'
+import request from '@/utils/request.js'
 
-export function login(data) {
-  return request({
-    url: '/vue-admin-template/user/login',
-    method: 'post',
-    data
-  })
-}
+// 登录
+export const userLoaingService = ({ mobile, password }) => request.post('/sys/login', { mobile, password })
 
-export function getInfo(token) {
-  return request({
-    url: '/vue-admin-template/user/info',
-    method: 'get',
-    params: { token }
-  })
-}
+// 用户相关 - 获取用户基本质料
+export const userGetInfoService = () => request.get('/sys/profile')
 
-export function logout() {
-  return request({
-    url: '/vue-admin-template/user/logout',
-    method: 'post'
-  })
-}
+// 用户相关 - 退出登录
+export const userLogoutService = (data) => request.put('/sys/user/updatePass', data)
