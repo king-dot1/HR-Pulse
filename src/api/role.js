@@ -15,3 +15,9 @@ export const roleDeleteService = (id) => request.delete(`/sys/role/${id}`)
 
 // 获取 -角色详情
 export const roleGetDetailService = (id) => request.get(`/sys/role/${id}`)
+
+// 获取 -已开启的角色列表
+export const roleGetAllService = () => request.get('/sys/role/list/enabled')
+
+// 分配权限-角色
+export const roleAssignPermsService = (data) => request.put('/sys/role/assignPrem', data)

@@ -3,7 +3,7 @@
     <div class="app-container">
       <!-- 左树 -->
       <div class="left">
-        <el-input v-model="paramsQuery.keyword" size="small" prefix-icon="el-icon-search" placeholder="输入员工姓名全员搜索" @input="changeValue" />
+        <el-input v-model="paramsQuery.keyword" style="margin-bottom: 10px;" size="small" prefix-icon="el-icon-search" placeholder="输入员工姓名全员搜索" @input="changeValue" />
 
         <!-- 树结构 -->
         <el-tree
@@ -48,11 +48,9 @@
             align="center"
           >
             <template v-slot="{row}">
-              <span class="img-staffPhoto">
-                <el-image v-if="row.staffPhoto" :src="row.staffPhoto" />
-                <!-- 头像空 -->
-                <span v-else class="empty">{{ (row.username+'').charAt(0) }}</span>
-              </span>
+              <el-image v-if="row.staffPhoto" class="img-staffPhoto" :src="row.staffPhoto" />
+              <!-- 头像空 -->
+              <span v-else class="empty-staffPhoto">{{ (row.username+'').charAt(0) }}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -87,14 +85,14 @@
           />
           <el-table-column width="180" label="操作">
             <template v-slot="{row}">
-              <el-button type="text" size="mini" @click="$router.push(`/employee/detail/${row.id}`)">查看</el-button>
-              <el-button type="text" size="mini">角色</el-button>
+              <el-button type="text" @click="$router.push(`/employee/detail/${row.id}`)">查看</el-button>
+              <el-button type="text" @click="allotRole(row.id)">角色</el-button>
               <el-popconfirm
                 style="margin-left: 10px;"
                 title="确定删除这段内容吗？"
                 @onConfirm="delEmployee(row.id)"
               >
-                <el-button slot="reference" type="text" size="mini">删除</el-button>
+                <el-button slot="reference" type="text">删除</el-button>
               </el-popconfirm>
             </template>
           </el-table-column>
@@ -110,6 +108,25 @@
             @current-change="handleCurrentChange"
           />
         </el-row>
+
+        <!-- 分配角色弹层 -->
+        <el-dialog
+          title="分配角色"
+          :visible.sync="showRoleDialog"
+        >
+          <!-- 渲染角色 -->
+          <el-checkbox-group v-model="roleIds">
+            <el-checkbox v-for="item in roleList" :key="item.id" :label="item.id">
+              {{ item.name }}
+            </el-checkbox>
+          </el-checkbox-group>
+          <span slot="footer" class="dialog-footer">
+            <el-row type="flex" justify="center">
+              <el-button :loading="roleLoading" size="mini" type="primary" @click="putRole">确定</el-button>
+              <el-button size="mini" @click="showRoleDialog = false">取消</el-button>
+            </el-row>
+          </span>
+        </el-dialog>
       </div>
     </div>
     <!-- 弹层导入 -->
@@ -120,9 +137,10 @@
 <script>
 import { departmentListService } from '@/api/department'
 import { transListToTreeData } from '@/utils/transListToTreeData'
-import { employeeListService, employeeExportService, employeeDeleteService } from '@/api/employee'
+import { employeeListService, employeeExportService, employeeDeleteService, employeeInfoService, employeeRoleService } from '@/api/employee'
 import FileSaver from 'file-saver'
 import importExcelVue from './components/importExcel.vue'
+import { roleGetAllService } from '@/api/role'
 
 export default ({
   name: 'EmployeeIndex',
@@ -146,7 +164,12 @@ export default ({
       total: 0, // 总条数
       timer: null, // 定时器
       dialogVisible: false, // 弹层是否显示
-      loading: false // 导出按钮是否加载中
+      loading: false, // 导出按钮是否加载中
+      roleList: [], // 角色列表（已开启）
+      showRoleDialog: false, // 分配角色弹层是否显示
+      roleIds: [], // 双向绑定的角色id列表
+      currentId: null, // 当前点击的员工 id
+      roleLoading: false // 角色列表是否加载中
     }
   },
   created() {
@@ -154,6 +177,36 @@ export default ({
     this.getEmployeeList()
   },
   methods: {
+    // 确定 分配角色
+    async putRole() {
+      this.roleLoading = true
+      try {
+        await employeeRoleService(this.currentId, this.roleIds)
+        this.$message({
+          message: '分配用户角色成功',
+          type: 'success'
+        })
+        this.showRoleDialog = false
+      } catch (error) {
+        console.log(error)
+      } finally {
+        this.roleLoading = false
+      }
+    },
+
+    // 点击 角色
+    async allotRole(id) {
+      // 记录当前员工 id
+      this.currentId = id
+      // 获取员工信息
+      const { data: { roleIds }} = await employeeInfoService(id)
+      this.roleIds = roleIds
+      // 获取已开启的角色列表
+      const res = await roleGetAllService()
+      this.roleList = res.data
+      this.showRoleDialog = true
+    },
+
     // 获取树结构数据
     async getTreeList() {
       // 默认获取10条
@@ -256,34 +309,27 @@ export default ({
         background-color: #f5f6f8; /* 可根据需求调整颜色 */
       }
 
-      // 头像
+      // 头像图片
       .img-staffPhoto {
+         width: 30px;
+         height: 30px;
+         border-radius: 50%;
+         img {
+           width: 100%;
+           height: 100%;
+         }
+       }
+      // 头像空时显示
+      .empty-staffPhoto {
         width: 30px;
         height: 30px;
-        display: inline-block;
+        line-height: 30px;
         border-radius: 50%;
-        overflow: hidden;
-
-        .el-image {
-          width: 30px;
-          height: 30px;
-          img {
-            width: 100%;
-            height: 100%;
-          }
-        }
-
-        // 头像空时显示
-        .empty {
-          width: 100%;
-          height: 100%;
-          line-height: 30px;
-          display: inline-block;
-          text-align: center;
-          background: #04c9be;
-          color: #fff;
-          font-size: 12px;
-        }
+        display: inline-block;
+        text-align: center;
+        background: #04c9be;
+        color: #fff;
+        font-size: 12px;
       }
 
     }

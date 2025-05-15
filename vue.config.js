@@ -40,7 +40,7 @@ module.exports = {
     // 跨域代理
     proxy: {
       '/api': {
-        target: 'https://heimahr.itheima.net'
+        target: 'https://heimahr.itheima.net/'
       }
     }
     // 基础模块做的模拟数据，会影响到请求

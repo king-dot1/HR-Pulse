@@ -12,7 +12,7 @@
       <!-- 头像 -->
       <el-dropdown class="avatar-container" trigger="click">
         <div class="avatar-wrapper">
-          <img v-if="avatar" :src="avatar+'?imageView2/1/w/80/h/80'" class="user-avatar">
+          <img v-if="avatar" :src="avatar" class="user-avatar">
           <!-- 头像空时 -->
           <span v-else class="empty-avatar">
             {{ (name+"").substr(0,1) }}

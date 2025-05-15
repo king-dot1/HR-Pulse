@@ -56,10 +56,10 @@
         <el-table-column label="操作">
           <template v-slot="{row}">
             <div v-if="!row.isEdit">
-              <el-button type="text" size="mini">分配权限</el-button>
-              <el-button type="text" size="mini" @click="row.isEdit = true">编辑</el-button>
+              <el-button type="text" @click="allotPermission(row.id)">分配权限</el-button>
+              <el-button type="text" @click="row.isEdit = true">编辑</el-button>
               <el-popconfirm style="margin-left:10px" title="确定删除这段内容吗？" @onConfirm="delRole(row.id)">
-                <el-button slot="reference" type="text" size="mini">删除</el-button>
+                <el-button slot="reference" type="text">删除</el-button>
               </el-popconfirm>
             </div>
             <div v-else>
@@ -70,6 +70,28 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分配权限弹层 -->
+      <el-dialog
+        title="分配权限"
+        :visible.sync="dialogVisible"
+        width="50%"
+      >
+        <!-- 权限树 -->
+        <el-tree
+          ref="treeRef"
+          :data="permissionTree"
+          show-checkbox
+          node-key="id"
+          default-expand-all
+          :default-checked-keys="permIds"
+          :props="defaultProps"
+        />
+        <span slot="footer" class="dialog-footer">
+          <el-button :loading="loading" size="mini" type="primary" @click="putPermission">确定</el-button>
+          <el-button size="mini" @click="dialogVisible = false">取消</el-button>
+        </span>
+      </el-dialog>
 
       <!-- 分页 -->
       <div class="page">
@@ -90,8 +112,10 @@
 </template>
 
 <script>
-import { roleGetPageService, roleUpdateService, roleDeleteService } from '@/api/role'
+import { roleGetPageService, roleAssignPermsService, roleUpdateService, roleDeleteService, roleGetDetailService } from '@/api/role'
 import RoleDept from './components/roleDept.vue'
+import { permissionListService } from '@/api/permission'
+import { transListToTreeData } from '@/utils/transListToTreeData'
 
 export default ({
   name: 'RoleIndex',
@@ -105,13 +129,55 @@ export default ({
         page: 1, // 当前页码
         pagesize: 5, // 每页显示条数
         total: 0 // 总条数
-      }
+      },
+      permissionTree: [], // 权限列表树
+      dialogVisible: false, // 控制 分配权限 弹层
+      defaultProps: {
+        children: 'children',
+        label: 'name'
+      },
+      permIds: [], // 默认选中的权限id
+      currentRoleId: null, // 记录当前角色id
+      loading: false // 控制按钮加载状态
     }
   },
   created() {
     this.getRoleList()
   },
   methods: {
+    // 确认分配权限
+    async putPermission() {
+      this.loading = true
+      try {
+        await roleAssignPermsService({
+          id: this.currentRoleId,
+          permIds: this.$refs.treeRef.getCheckedKeys() // 获取选中的权限id
+        })
+        this.$message({
+          message: '角色分配权限成功',
+          type: 'success'
+        })
+        this.dialogVisible = false
+      } catch (error) {
+        console.log(error)
+      } finally {
+        // 无论成功失败 ；都要关闭加载状态
+        this.loading = false
+      }
+    },
+
+    // 分配权限
+    async allotPermission(id) {
+      this.currentRoleId = id
+      // 获取选中的权限 (先执行权限列表接口，再执行角色详情接口；这样就不会导致permIds出现问题)
+      const { data: { permIds }} = await roleGetDetailService(id)
+      this.permIds = permIds
+      // 获取权限列表
+      const res = await permissionListService()
+      this.permissionTree = transListToTreeData(res.data, 0)
+      this.dialogVisible = true
+    },
+
     // 获取角色列表
     async getRoleList() {
       const { data: { rows, total }} = await roleGetPageService(this.params)

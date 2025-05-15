@@ -31,3 +31,6 @@ export const employeeUpdateService = (data) => request.put(`/sys/user/${data.id}
 
 // 新增-员工
 export const employeeAddService = (data) => request.post('/sys/user', data)
+
+// 分配-员工-角色
+export const employeeRoleService = (id, roleIds) => request.put('/sys/user/assignRoles', { id, roleIds })
